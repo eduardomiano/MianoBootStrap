@@ -1,0 +1,115 @@
+﻿@{
+    ViewBag.Title = "About";    
+}
+
+@section scripts
+{
+    @Scripts.Render("~/bundles/jqueryui")
+
+    <script>
+        
+        var notifications = {
+            apiAvailable: function () {
+                if (window.webkitNotifications) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+
+            isAuthorized: function () {
+                if (!this.apiAvailable()) return false;
+
+                return window.webkitNotifications.checkPermission() > 0 ? false : true;
+            },
+
+            authorize: function (callback) {
+                var self = this;
+                if (!this.apiAvailable()) return false;
+
+                window.webkitNotifications.requestPermission(function () {
+                    if (self.isAuthorized()) {
+                        callback();
+                    }
+                });
+            },
+
+            show: function (url, title, body) {
+                if (!this.apiAvailable()) return false;
+
+                var self = this;
+                                
+                if (this.isAuthorized()) {
+                    var popup = window.webkitNotifications.createNotification(url, new Date().toDateString() + '\n' + title, body);
+                    popup.show();
+
+                    popup.ondisplay = function (event) {
+                        setTimeout(function () {
+                            event.currentTarget.cancel();
+                        }, 100000);
+                    };
+
+                    popup.onclick = function () {
+                        window.focus();
+
+                        this.cancel();
+                    };
+
+                    //setTimeout(function () {
+                    //    popup.cancel();
+                    //}, 5000);
+                } else {
+                    this.authorize(function () {
+                        //console.log(arguments);
+                        self.show(url, title, body);
+                    });
+                }
+            },
+
+            checkForPermission: function () {
+                if (!this.isAuthorized()) this.callForPermission();
+            },
+
+            callForPermission: function () {
+                var self = this;
+                var authorizeBox = jQuery('<div />').addClass('notifications-authorize')
+                                                    .html('<p>Seu navegador possui suporte a notificações. Para solicitar uma permissão de notificação, clique no botão abaixo. Aperte "ALLOW" ou "PERMITIR" para a janela de notificação que irá aparecer. <input type="button" value="Ativar notificações" /></p>')
+
+                jQuery('body').append(authorizeBox);
+
+                jQuery('div.notifications-authorize input').click(function () {
+                    jQuery(this).remove();
+                    self.authorize();
+                });
+            }
+        };
+
+        $("document").ready(function () {
+            $('#click-me').click(function () {
+                if (notifications.apiAvailable()) {
+                    notifications.authorize(function (s, e) {
+                        if (notifications.isAuthorized())
+                            alert('Permissão concedida!');
+                        else
+                            alert('Permissão negada!');
+                    });
+                }
+            });
+        });
+                
+        
+    </script>
+}
+
+<p>About</p>
+
+<div class="alert alert-block">
+  <button type="button" class="close" data-dismiss="alert">&times;</button>
+  <h4>Warning!</h4>
+  Best check yo self, you're not...
+</div>
+
+<button id="click-me" class="btn" >Click-Me</button>
+
+<button class="btn" onclick="notifications.show('', 'PELE Confirmation - Itau', 'Chegou a confirmação do Itau - 99286')">Show Message</button>
+
